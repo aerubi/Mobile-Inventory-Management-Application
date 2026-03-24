@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Main application configuration file -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permission required to send SMS notifications -->
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+
+    <!-- Declare telephony feature (not required for install) -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="InventoryManager"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.InventoryManager">
+
+        <!-- Login Screen (Launch Screen) -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <!-- Inventory Dashboard Screen -->
+        <activity
+            android:name=".InventoryActivity"
+            android:exported="false" />
+
+        <!-- SMS Permissions Screen -->
+        <activity android:name=".SmsPermissionsActivity"/>
+
+    </application>
+
+</manifest>
