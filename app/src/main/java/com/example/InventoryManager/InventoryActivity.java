@@ -5,6 +5,10 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.widget.Toast;
+import android.widget.Button;
+import android.widget.EditText;
+import android.text.TextWatcher;
+import android.text.Editable;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -23,6 +27,8 @@ import java.util.ArrayList;
  * - Adding new items
  * - Viewing current stock
  * - Sending low inventory SMS alerts
+ * - Sorting items
+ * - Searching items
  *
  * Uses InventoryRepository to separate UI from database logic.
  */
@@ -36,6 +42,18 @@ public class InventoryActivity extends AppCompatActivity {
 
     // Adapter binds data to RecyclerView
     private InventoryAdapter adapter;
+
+    // Sorting buttons
+    private Button btnSortName, btnSortQuantity;
+
+    // Search input
+    private EditText etSearch;
+
+    // Store full list for filtering
+    private ArrayList<InventoryItem> fullList;
+
+    // Track current sort type
+    private String currentSort = "NONE";
 
     // Threshold for triggering low stock alerts
     private static final int LOW_STOCK_THRESHOLD = 5;
@@ -51,11 +69,43 @@ public class InventoryActivity extends AppCompatActivity {
         recyclerViewInventory = findViewById(R.id.recyclerViewInventory);
         fabAddItem = findViewById(R.id.fabAddItem);
 
+        // Initialize sorting buttons
+        btnSortName = findViewById(R.id.btnSortName);
+        btnSortQuantity = findViewById(R.id.btnSortQuantity);
+
+        // Initialize search field
+        etSearch = findViewById(R.id.etSearch);
+
         // Display items in a 2-column grid layout
         recyclerViewInventory.setLayoutManager(new GridLayoutManager(this, 2));
 
         // Open dialog to add new item
         fabAddItem.setOnClickListener(v -> openAddItemDialog());
+
+        // Sorting button listeners
+        btnSortName.setOnClickListener(v -> {
+            currentSort = "NAME";
+            applyFilters();
+        });
+
+        btnSortQuantity.setOnClickListener(v -> {
+            currentSort = "QUANTITY";
+            applyFilters();
+        });
+
+        // Real-time search listener
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                applyFilters();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
 
         // Load inventory on screen start
         loadInventory();
@@ -67,15 +117,41 @@ public class InventoryActivity extends AppCompatActivity {
      */
     private void loadInventory() {
 
-        // Fetch data from repository (no direct DB access here)
-        ArrayList<InventoryItem> items = repository.getAllItems();
+        // Save full list for search filtering
+        fullList = repository.getAllItems();
 
-        // Bind data to RecyclerView
-        adapter = new InventoryAdapter(this, items, repository);
+        adapter = new InventoryAdapter(this, fullList, repository);
         recyclerViewInventory.setAdapter(adapter);
 
         // Check if any items are below threshold
-        checkLowInventory(items);
+        checkLowInventory(fullList);
+    }
+
+    private void applyFilters() {
+
+        String query = etSearch.getText().toString().toLowerCase();
+        ArrayList<InventoryItem> filteredList = new ArrayList<>();
+
+        // Loop through full list to find matching items
+        for (InventoryItem item : fullList) {
+            // Compare item name with search query (case-insensitive)
+            if (item.getName().toLowerCase().contains(query)) {
+                filteredList.add(item);
+            }
+        }
+
+        // Sort list alphabetically using comparator & Sort list by quantity (low to high)
+        if (currentSort.equals("NAME")) {
+            filteredList.sort((a, b) ->
+                    a.getName().compareToIgnoreCase(b.getName()));
+        } else if (currentSort.equals("QUANTITY")) {
+            filteredList.sort((a, b) ->
+                    Integer.compare(a.getQuantity(), b.getQuantity()));
+        }
+
+        // DISPLAY
+        adapter = new InventoryAdapter(this, filteredList, repository);
+        recyclerViewInventory.setAdapter(adapter);
     }
 
     /**

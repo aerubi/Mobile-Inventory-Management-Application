@@ -138,12 +138,9 @@ public class InventoryAdapter extends RecyclerView.Adapter<InventoryAdapter.View
                     newQuantity
             );
 
-            // Update local list
-            items.set(position, new InventoryItem(
-                    currentItem.getId(),
-                    newName,
-                    newQuantity
-            ));
+            // Update object directly instead of recreating list
+            currentItem.setName(newName);
+            currentItem.setQuantity(newQuantity);
 
             notifyItemChanged(position);
 
