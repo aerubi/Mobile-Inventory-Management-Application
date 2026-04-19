@@ -3,14 +3,12 @@ package com.example.InventoryManager;
 import android.content.Context;
 import android.database.Cursor;
 
-import java.util.Collections;
-import java.util.Comparator;
-
 import java.util.ArrayList;
 
 public class InventoryRepository {
 
     private DatabaseHelper dbHelper;
+    private int currentUserId = -1; // Track logged-in user
 
     public InventoryRepository(Context context) {
         dbHelper = new DatabaseHelper(context);
@@ -24,7 +22,13 @@ public class InventoryRepository {
 
         if (storedPassword == null) return false;
 
-        return PasswordUtils.verifyPassword(password, storedPassword);
+        boolean valid = PasswordUtils.verifyPassword(password, storedPassword);
+
+        if (valid) {
+            currentUserId = dbHelper.getUserId(username); // store user session
+        }
+
+        return valid;
     }
 
     public boolean createUser(String username, String password) {
@@ -37,13 +41,13 @@ public class InventoryRepository {
     // ================= INVENTORY =================
 
     public boolean addItem(String name, int quantity) {
-        return dbHelper.addItem(name, quantity);
+        return dbHelper.addItem(name, quantity, currentUserId);
     }
 
     public ArrayList<InventoryItem> getAllItems() {
 
         ArrayList<InventoryItem> items = new ArrayList<>();
-        Cursor cursor = dbHelper.getAllItems();
+        Cursor cursor = dbHelper.getAllItems(currentUserId);
 
         while (cursor.moveToNext()) {
             items.add(new InventoryItem(
@@ -53,6 +57,7 @@ public class InventoryRepository {
             ));
         }
 
+        cursor.close();
         return items;
     }
 
@@ -62,44 +67,5 @@ public class InventoryRepository {
 
     public void deleteItem(int id) {
         dbHelper.deleteItem(id);
-    }
-
-    // Sort by name (A-Z)
-    public ArrayList<InventoryItem> getItemsSortedByName() {
-
-        ArrayList<InventoryItem> items = getAllItems();
-
-        Collections.sort(items, (a, b) ->
-                a.getName().compareToIgnoreCase(b.getName())
-        );
-
-        return items;
-    }
-
-    // Sort by quantity (low to high)
-    public ArrayList<InventoryItem> getItemsSortedByQuantity() {
-
-        ArrayList<InventoryItem> items = getAllItems();
-
-        Collections.sort(items, Comparator.comparingInt(InventoryItem::getQuantity));
-
-        return items;
-    }
-
-    // Filter low stock
-    public ArrayList<InventoryItem> getLowStockItems(int threshold) {
-
-        ArrayList<InventoryItem> items = getAllItems();
-        ArrayList<InventoryItem> filtered = new ArrayList<>();
-
-        for (InventoryItem item : items) {
-
-            // Only include items below threshold
-            if (item.getQuantity() < threshold) {
-                filtered.add(item);
-            }
-        }
-
-        return filtered;
     }
 }
